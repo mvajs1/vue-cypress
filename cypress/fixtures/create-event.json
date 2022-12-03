@@ -1,0 +1,9 @@
+{
+    "name":  "Vuex Event",
+    "venue": "Vuex Venue",
+    "date": "2025-06-11T22:00:00.000Z",
+    "time": "12:00AM",
+    "ticketQuantity": 10,
+    "isCancelled": false,
+    "image": "./assets/event-3.jpg"
+}

@@ -1,31 +1,49 @@
-const express = require("express");
-const bodyParser = require("body-parser");
-const mongoose = require("mongoose");
-const cors = require("cors");
+const express = require('express')
+const bodyParser = require('body-parser')
+const mongoose = require('mongoose')
+const cors = require('cors')
+const path = require('path')
+const chalk = require('chalk')
+const history = require('connect-history-api-fallback')
+const { MongoMemoryServer } = require('mongodb-memory-server')
 
-const eventRouter = require("./routes/event");
+const eventRouter = require('./routes/event')
 
-const app = express();
+MongoMemoryServer.create()
+  .then((mongod) => {
+    console.log(
+      `MongoDB is up and running on: ${chalk.blueBright.underline(mongod.getUri())}`);
+    mongoose.connect(mongod.getUri())
+    mongoose.Promise = global.Promise
 
-const mongoDB = process.env.DATABASE;
+    const db = mongoose.connection
+    db.on('error', console.error.bind(console, 'MongoDB connection error:'))
 
-mongoose.connect(mongoDB);
-mongoose.Promise = global.Promise;
+    const app = express()
+    app.use(history())
+    app.use(cors())
+    app.use(bodyParser.json())
+    app.use(bodyParser.urlencoded({ extended: false }))
+    app.use(express.static(path.resolve(__dirname, 'dist/')))
 
-const db = mongoose.connection;
-db.on("error", console.error.bind(console, "MongoDB connection error:"));
+    app.get('/', function (req, res) {
+      res.sendFile(path.resolve(__dirname, 'dist/index.html'))
+    })
 
-app.use(cors());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
+    app.use('/api/event', eventRouter)
 
-app.use("/event", eventRouter);
+    const port = 8080
 
-const port = 8081;
-
-db.once("open", function () {
-    console.log("Connected!");
-    app.listen(port, () => {
-        console.log(`Server is up and running on port number: ${port}`);
-    });
-});
+    db.once('open', function () {
+      app.listen(port, () => {
+        console.log(
+          `The application is up and running on: ${chalk.cyan.underline(
+            `http://localhost:${port}`
+          )}`
+        )
+      })
+    })
+  })
+  .catch((e) => {
+    console.error(e)
+  })
